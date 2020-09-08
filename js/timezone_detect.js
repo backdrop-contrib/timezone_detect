@@ -23,6 +23,7 @@ jQuery(document).ready(function () {
     });
 
     // Set any timezone select on this page to the detected timezone.
+    console.log(tz.name());
     jQuery('select[name="timezone"] > option[value="' + tz.name() + '"]')
       .closest('select')
       .val(tz.name());

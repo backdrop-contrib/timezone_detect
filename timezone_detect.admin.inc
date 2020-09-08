@@ -24,18 +24,18 @@ function timezone_detect_admin_form($form, &$form_state) {
     TIMEZONE_DETECT_MODE_ALWAYS => t("Update timezone whenever it changes"),
   );
   $form['#config'] = 'timezone_detect.settings';
-  $form['timezone_detect_mode'] = array(
+  $form['mode'] = array(
     '#type' => 'radios',
     '#title' => t("When to set a user's timezone automatically"),
-    '#default_value' => $config->get('timezone_detect_mode'),
+    '#default_value' => $config->get('mode'),
     '#options' => $options,
-    '#description' => t("By default, Timezone Detect sets a user's timezone on login if it is not yet set. Alternatively, you can have the module update the user's timezone automatically on every login or whenever their timezone changes; be aware that these later settings will overwrite any manual timezone selection that the user may make."),
+    '#description' => t("Be aware that the non-default settings will overwrite any manual timezone selection that the user may make."),
   );
 
-  $form['timezone_detect_success_watchdog'] = array(
+  $form['success_watchdog'] = array(
     '#type' => 'checkbox',
     '#title' => t("Log successful events in watchdog"),
-    '#default_value' => $config->get('timezone_detect_success_watchdog'),
+    '#default_value' => $config->get('success_watchdog'),
     '#description' => t("By default, Timezone Detect will create a log entry every time it sets a user's timezone. This can create unnecessary noise in your log files so you are likely to want to disable this once you are confident the feature works."),
   );
 

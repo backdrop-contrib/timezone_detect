@@ -41,17 +41,17 @@ function timezone_detect_menu() {
 }
 
 /**
- * Implements hook_library().
+ * Implements hook_library_info().
  */
-function timezone_detect_library() {
+function timezone_detect_library_info() {
   $path = backdrop_get_path('module', 'timezone_detect');
   return array(
     'jstz' => array(
       'title' => t('jsTimezoneDetect'),
       'website' => TIMEZONE_DETECT_LIBRARY_WEBSITE,
-      'version' => '1.0.5',
+      'version' => '1.0.7',
       'js' => array(
-        $path . '/' . TIMEZONE_DETECT_LIBRARY_FILENAME => array(),
+        $path . '/library/' . TIMEZONE_DETECT_LIBRARY_FILENAME => array(),
       ),
     ),
   );
@@ -62,16 +62,17 @@ function timezone_detect_library() {
  */
 function timezone_detect_config_info() {
   $prefixes['timezone_detect.settings'] = array(
-    'label' => t('Module name settings'),
+    'label' => t('Timezone Detect settings'),
     'group' => t('Configuration'),
   );
+  return $prefixes;
 }
 
 /**
  * Implements hook_user_login().
  */
 function timezone_detect_user_login(&$edit, $account) {
-  if (config_get('timezone_detect.settings', 'timezone_detect_mode') === TIMEZONE_DETECT_MODE_LOGIN || empty($account->timezone)) {
+  if (config_get('timezone_detect.settings', 'mode') == TIMEZONE_DETECT_MODE_LOGIN || empty($account->timezone)) {
     // Set session flag to update user's timezone. Note that we cannot add the
     // js directly from this function, as the user is redirected after this
     // hook fires.
@@ -80,17 +81,17 @@ function timezone_detect_user_login(&$edit, $account) {
 }
 
 /**
- * Implements hook_page_build().
+ * Implements hook_preprocess_page().
  */
-function timezone_detect_page_build(&$page) {
+function timezone_detect_preprocess_page(&$page) {
   // Include the javascript only when appropriate.
-  if (isset($_SESSION['timezone_detect']['update_timezone']) || (!user_is_anonymous() && config_get('timezone_detect.settings', 'timezone_detect_mode') === TIMEZONE_DETECT_MODE_ALWAYS)) {
+  if (isset($_SESSION['timezone_detect']['update_timezone']) || (!user_is_anonymous() && config_get('timezone_detect.settings', 'mode') === TIMEZONE_DETECT_MODE_ALWAYS)) {
     timezone_detect_add_js();
   }
 }
 
 /**
- * Ajax callback function to set current user's timezone.
+ * AJAX callback function to set current user's timezone.
  */
 function timezone_detect_set_timezone() {
   global $user;
@@ -124,9 +125,9 @@ function timezone_detect_set_timezone() {
 
     // Save timezone to account.
     $account = user_load($user->uid);
-    $edit['timezone'] = $timezone;
-    user_save($account, $edit);
-    if (config_get('timezone_detect.settings', 'timezone_detect_success_watchdog')) {
+    $account->timezone = $timezone;
+    user_save($account);
+    if (config_get('timezone_detect.settings', 'success_watchdog')) {
       watchdog('timezone_detect', 'Set timezone for user @uid to @timezone.', array('@uid' => $user->uid, '@timezone' => $timezone));
     }
   }
@@ -137,7 +138,7 @@ function timezone_detect_set_timezone() {
 }
 
 /**
- * Add the javascript that will update the user's timezone via ajax callback.
+ * Add the Javascript that will update the user's timezone via AJAX callback.
  */
 function timezone_detect_add_js() {
   $added = &backdrop_static(__FUNCTION__, FALSE);
@@ -146,7 +147,7 @@ function timezone_detect_add_js() {
     backdrop_add_library('timezone_detect', 'jstz');
 
     // Add helper js.
-    $helper_js = backdrop_get_path('module', 'timezone_detect') . '/timezone_detect.js';
+    $helper_js = backdrop_get_path('module', 'timezone_detect') . '/js/timezone_detect.js';
     backdrop_add_js($helper_js);
 
     // Store the current timezone for comparison.

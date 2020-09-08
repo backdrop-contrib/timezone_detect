@@ -1,5 +1,5 @@
 name = Timezone Detect
-description = Provides automatic timezone detection via javascript.
+description = Provides automatic timezone detection via Javascript.
 package = Date/Time
 configure = admin/config/regional/timezone_detect
 backdrop = 1.x
