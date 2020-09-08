@@ -17,7 +17,7 @@ function timezone_detect_menu() {
   // Admin settings.
   $items['admin/config/regional/timezone_detect'] = array(
     'title' => 'Timezone Detect',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('timezone_detect_admin_form'),
     'access arguments' => array('administer site configuration'),
     'description' => 'Configure timezone detection settings.',
@@ -44,7 +44,7 @@ function timezone_detect_menu() {
  * Implements hook_library().
  */
 function timezone_detect_library() {
-  $path = drupal_get_path('module', 'timezone_detect');
+  $path = backdrop_get_path('module', 'timezone_detect');
   return array(
     'jstz' => array(
       'title' => t('jsTimezoneDetect'),
@@ -58,10 +58,20 @@ function timezone_detect_library() {
 }
 
 /**
+ * Implements hook_config_info().
+ */
+function timezone_detect_config_info() {
+  $prefixes['timezone_detect.settings'] = array(
+    'label' => t('Module name settings'),
+    'group' => t('Configuration'),
+  );
+}
+
+/**
  * Implements hook_user_login().
  */
 function timezone_detect_user_login(&$edit, $account) {
-  if (variable_get('timezone_detect_mode') === TIMEZONE_DETECT_MODE_LOGIN || empty($account->timezone)) {
+  if (config_get('timezone_detect.settings', 'timezone_detect_mode') === TIMEZONE_DETECT_MODE_LOGIN || empty($account->timezone)) {
     // Set session flag to update user's timezone. Note that we cannot add the
     // js directly from this function, as the user is redirected after this
     // hook fires.
@@ -74,7 +84,7 @@ function timezone_detect_user_login(&$edit, $account) {
  */
 function timezone_detect_page_build(&$page) {
   // Include the javascript only when appropriate.
-  if (isset($_SESSION['timezone_detect']['update_timezone']) || (!user_is_anonymous() && variable_get('timezone_detect_mode') === TIMEZONE_DETECT_MODE_ALWAYS)) {
+  if (isset($_SESSION['timezone_detect']['update_timezone']) || (!user_is_anonymous() && config_get('timezone_detect.settings', 'timezone_detect_mode') === TIMEZONE_DETECT_MODE_ALWAYS)) {
     timezone_detect_add_js();
   }
 }
@@ -94,7 +104,7 @@ function timezone_detect_set_timezone() {
       return '';
     }
     // Make sure we have a valid session token to prevent cross-site request forgery.
-    if (!isset($_POST['token']) || !drupal_valid_token($_POST['token'])) {
+    if (!isset($_POST['token']) || !backdrop_valid_token($_POST['token'])) {
       watchdog('timezone_detect', 'Attempting to set timezone for user @uid, but session token in $_POST data is empty or invalid; aborting.', array('@uid' => $user->uid), WATCHDOG_ERROR);
       return '';
     }
@@ -116,7 +126,7 @@ function timezone_detect_set_timezone() {
     $account = user_load($user->uid);
     $edit['timezone'] = $timezone;
     user_save($account, $edit);
-    if (variable_get('timezone_detect_success_watchdog', TRUE)) {
+    if (config_get('timezone_detect.settings', 'timezone_detect_success_watchdog')) {
       watchdog('timezone_detect', 'Set timezone for user @uid to @timezone.', array('@uid' => $user->uid, '@timezone' => $timezone));
     }
   }
@@ -130,14 +140,14 @@ function timezone_detect_set_timezone() {
  * Add the javascript that will update the user's timezone via ajax callback.
  */
 function timezone_detect_add_js() {
-  $added = &drupal_static(__FUNCTION__, FALSE);
+  $added = &backdrop_static(__FUNCTION__, FALSE);
   if (!$added) {
     // Add library js.
-    drupal_add_library('timezone_detect', 'jstz');
+    backdrop_add_library('timezone_detect', 'jstz');
 
     // Add helper js.
-    $helper_js = drupal_get_path('module', 'timezone_detect') . '/timezone_detect.js';
-    drupal_add_js($helper_js);
+    $helper_js = backdrop_get_path('module', 'timezone_detect') . '/timezone_detect.js';
+    backdrop_add_js($helper_js);
 
     // Store the current timezone for comparison.
     $timezone = '';
@@ -149,16 +159,16 @@ function timezone_detect_add_js() {
     }
 
     // Create and pass token to prevent cross-site request forgery.
-    $token = drupal_get_token();
+    $token = backdrop_get_token();
 
     // Add these items as js settings.
     $setting = array(
       'timezone_detect' => array(
         'current_timezone' => $timezone,
-        'token' => $token
+        'token' => $token,
       ),
     );
-    drupal_add_js($setting, 'setting');
+    backdrop_add_js($setting, 'setting');
 
     // Mark as added so we don't do it again.
     $added = TRUE;

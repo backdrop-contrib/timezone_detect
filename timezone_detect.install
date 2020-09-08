@@ -14,24 +14,26 @@ require_once 'timezone_detect.constants.inc';
  * Implements hook_enable().
  */
 function timezone_detect_enable() {
-  drupal_set_message(t('The Timezone Detect module was successfully enabled.'), 'status');
+  backdrop_set_message(t('The Timezone Detect module was successfully enabled.'), 'status');
 
   // Set default user timezone to "none." Otherwise this module will not do
   // anything in its default configuration ("set user timezone only if it
   // is not set").
-  $user_default_timezone = variable_get('user_default_timezone', DRUPAL_USER_TIMEZONE_DEFAULT);
-  if ($user_default_timezone != DRUPAL_USER_TIMEZONE_EMPTY) {
-    variable_set('user_default_timezone', DRUPAL_USER_TIMEZONE_EMPTY);
-    drupal_set_message(t('Default user timezone set to "empty timezone" for best results with Timezone Detect.'), 'status');
+  $user_default_timezone = config_get('system.date', 'user_default_timezone');
+  if ($user_default_timezone != BACKDROP_USER_TIMEZONE_EMPTY) {
+    config_set('system.date', 'user_default_timezone', BACKDROP_USER_TIMEZONE_EMPTY);
+    backdrop_set_message(t('Default user timezone set to "empty timezone" for best results with Timezone Detect.'), 'status');
   }
 
   // Disable "remind users at login if their time zone is not set." Otherwise
   // users may be asked to set their timezone on first login even when this
   // module has already set it via ajax callback.
+  // TODO This variable was probably removed in Backdrop without replacement.
   $empty_timezone_message = variable_get('empty_timezone_message', 0);
   if ($empty_timezone_message != 0) {
+    // TODO This variable was probably removed in Backdrop without replacement.
     variable_set('empty_timezone_message', 0);
-    drupal_set_message(t('"Remind users at login if their time zone is not set" set to FALSE for best results with Timezone Detect.'), 'status');
+    backdrop_set_message(t('"Remind users at login if their time zone is not set" set to FALSE for best results with Timezone Detect.'), 'status');
   }
 }
 
@@ -39,6 +41,7 @@ function timezone_detect_enable() {
  * Implements hook_requirements().
  */
 function timezone_detect_requirements($phase) {
+  $config = config('timezone_detect.settings');
   $requirements = array();
   $t = get_t();
 
@@ -46,9 +49,9 @@ function timezone_detect_requirements($phase) {
   // Timezone Detect is configured to update user timezone on every login
   // (otherwise automatic timezone detection will not work).
   $default_timezone_okay = FALSE;
-  $user_default_timezone = variable_get('user_default_timezone', DRUPAL_USER_TIMEZONE_DEFAULT);
-  $timezone_update_mode = variable_get('timezone_detect_mode');
-  if ($timezone_update_mode != TIMEZONE_DETECT_MODE_DEFAULT || $user_default_timezone == DRUPAL_USER_TIMEZONE_EMPTY) {
+  $user_default_timezone = config_get('system.date', 'user_default_timezone');
+  $timezone_update_mode = $config->get('timezone_detect_mode');
+  if ($timezone_update_mode != TIMEZONE_DETECT_MODE_DEFAULT || $user_default_timezone == BACKDROP_USER_TIMEZONE_EMPTY) {
     $default_timezone_okay = TRUE;
   }
 
@@ -60,7 +63,7 @@ function timezone_detect_requirements($phase) {
           'value' => $t('Incompatible default user timezone'),
           'description' => $t('For automatic timezone detection to work correctly, please change default user timezone to "empty timezone" on your site\'s !regional_settings_url.', array(
             '!regional_settings_url' => l($t('regional settings page'), 'admin/config/regional/settings'),
-            )
+          )
           ),
           'severity' => REQUIREMENT_ERROR,
         );
@@ -75,14 +78,35 @@ function timezone_detect_requirements($phase) {
  * Implements hook_uninstall().
  */
 function timezone_detect_uninstall() {
-  variable_del('timezone_detect_mode');
+  config_clear('timezone_detect.settings', 'timezone_detect_mode');
+}
+
+// TODO The old hook_update_N functions cannot be applied to Backdrop.
+function timezone_detect_update_7100() { }
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function timezone_detect_update_last_removed() {
+  return 7100;
 }
 
 /**
- * Migrate variable used for saving timezone detection mode.
+ * Implements hook_update_N().
  */
-function timezone_detect_update_7100() {
-  $current_mode = variable_get('timezone_detect_update_timezone_every_login', TIMEZONE_DETECT_MODE_DEFAULT);
-  variable_set('timezone_detect_mode', $current_mode);
-  variable_del('timezone_detect_update_timezone_every_login');
+function timezone_detect_update_1000() {
+  $config = config('timezone_detect.settings');
+  $config->set('timezone_detect_mode', update_variable_get('timezone_detect_mode', 'novalue'));
+  $config->set('timezone_detect_success_watchdog', update_variable_get('timezone_detect_success_watchdog', 'TRUE'));
+  $config->set('timezone_detect_update_timezone_every_login', update_variable_get('timezone_detect_update_timezone_every_login', 'TIMEZONE_DETECT_MODE_DEFAULT'));
+  update_variable_del('timezone_detect_mode');
+  update_variable_del('timezone_detect_success_watchdog');
+  update_variable_del('timezone_detect_update_timezone_every_login');
+}
+
+/**
+ * Implements hook_install().
+ */
+function timezone_detect_install() {
+  // Dynamically generated variable data was detected.
 }
