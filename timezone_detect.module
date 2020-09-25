@@ -69,6 +69,52 @@ function timezone_detect_config_info() {
 }
 
 /**
+ * Implements hook_block_info().
+ */
+function timezone_detect_block_info() {
+  $blocks['timezone_detect_current_timezone'] = array(
+    'info' => t('Current Timezone'),
+  );
+  return $blocks;
+}
+
+/**
+ * Implements hook_block_view().
+ */
+function timezone_detect_block_view($delta) {
+  $block = array();
+  switch ($delta) {
+    case 'timezone_detect_current_timezone':
+      $block['subject'] = t('Current Timezone');
+      $block['content'] = timezone_detect_current_timezone_display();
+      break;
+  }
+  return $block;
+}
+
+/**
+  * Display the user's current timezone.
+  */
+function timezone_detect_current_timezone_display() {
+  global $user;
+  $output = "<div class='messages info'>";
+  if ($user->uid > 0) {
+    // User is logged in.
+    $output .= t("All times below are shown based on your profile's current timezone, <strong>@timezone</strong>. You can set a different timezone in your profile.", array(
+      '@timezone' => $user->timezone,
+    ));
+  }
+  else {
+    // User is not logged in -- may use session variable in the future.
+    $output .= t("<strong>NOTE:</strong> If you are not yet registered for the conference, all times below are set according to the default timezone: <strong>@timezone</strong>. Once registered, participants may set the time zone in their profile so that the schedule is displayed according to their local time.", array(
+      '@timezone' => config_get('system.date', 'default_timezone'),
+    ));
+  }
+  $output .= "</div>";
+  return $output;
+}
+
+/**
  * Implements hook_user_login().
  */
 function timezone_detect_user_login(&$edit, $account) {
