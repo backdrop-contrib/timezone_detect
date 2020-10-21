@@ -97,21 +97,42 @@ function timezone_detect_block_view($delta) {
   */
 function timezone_detect_current_timezone_display() {
   global $user;
+  $timezone = timezone_detect_current_timezone_fetch();
   $output = "<div class='messages info'>";
   if ($user->uid > 0) {
     // User is logged in.
     $output .= t("All times below are shown based on your profile's current timezone, <strong>@timezone</strong>. You can set a different timezone in your profile.", array(
-      '@timezone' => $user->timezone,
+      '@timezone' => $timezone,
     ));
   }
   else {
     // User is not logged in -- may use session variable in the future.
     $output .= t("<strong>NOTE:</strong> If you are not yet registered for the conference, all times below are set according to the default timezone: <strong>@timezone</strong>. Once registered, participants may set the time zone in their profile so that the schedule is displayed according to their local time.", array(
-      '@timezone' => config_get('system.date', 'default_timezone'),
+      '@timezone' => $timezone,
     ));
   }
   $output .= "</div>";
   return $output;
+}
+
+/**
+  * Fetch the user's current timezone. Returns timezone as plain text.
+  */
+function timezone_detect_current_timezone_fetch() {
+  global $user;
+  $user_configurable_timezones = config_get('system.date', 'user_configurable_timezones');
+  $timezone = NULL;
+  if ($user->uid > 0 && $user_configurable_timezones && !empty($user->timezone)) {
+    // User is logged in.
+    $timezone = $user->timezone;
+  }
+  else {
+    // User has not or can not configure their own timezone, or they are not
+    // logged in, so we will use default site timezone.
+    // We may use a session variable in the future. See https://github.com/backdrop/backdrop-issues/issues/4612
+    $timezone = config_get('system.date', 'default_timezone');
+  }
+  return $timezone;
 }
 
 /**
